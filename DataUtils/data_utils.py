@@ -1,5 +1,7 @@
 from data_loader import *
 from transformer import *
+
+from tqdm import tqdm
 import json
 import os
 
@@ -39,8 +41,9 @@ class DataUtils:
             mtime = os.path.getmtime(file_dir)
             if file_dir not in self.utils or\
                 mtime != self.utils[file_dir]['mtime']:
+                print(f'updating {file_dir} ...')
                 file_content = [[line, self.transformer.encoded(line).tolist()]
-                                for line in loader.load_file(file_dir)]
+                                for line in tqdm(loader.load_file(file_dir))]
                 self.utils[file_dir] = {'mtime': mtime, 'content': file_content}
 
 
