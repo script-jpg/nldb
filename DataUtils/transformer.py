@@ -29,11 +29,16 @@ class Transformer(ABC):
     def cos_similarity(self, msg1, msg2):
         pass
 
+    @abstractmethod
+    def find_relevant(self, query: str, utils: dict):
+        pass
+
 class BertTransformer:
 
     def __init__(self, model_type = 'bert-base-uncased') -> None:
         self.model_type = model_type
         self.load_model(model_type)
+        self.cos = torch.nn.CosineSimilarity(0)
 
     def name(self) -> str:
         # Return the model name
@@ -60,8 +65,25 @@ class BertTransformer:
         return sentence_embedding
 
     def cos_similarity(self, msg1, msg2):
-        cos = torch.nn.CosineSimilarity(0)
-        return cos(self.encoded(msg1), self.encoded(msg2))
+        return self.cos(self.encoded(msg1), self.encoded(msg2))
+    
+    def find_relevant(self, query: str, utils: dict):
+        query_vector = self.encoded(query)
+
+        embedding_index = 1
+
+        relevance = []
+        for doc, util in utils.items():
+            for line_data in util['content']:
+                line_embedding = line_data[embedding_index]
+                relevance.append({
+                    'doc': doc,
+                    'cos_similarity': self.cos(query_vector, torch.Tensor(line_embedding)).item()
+                })
+
+        relevance.sort(key = lambda item: item['cos_similarity'], reverse=True)
+
+        return list(set([item['doc'] for item in relevance]))
 
 
 

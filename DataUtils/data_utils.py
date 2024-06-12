@@ -1,5 +1,5 @@
-from data_loader import *
-from transformer import *
+from .data_loader import *
+from .transformer import *
 
 from tqdm import tqdm
 import json
@@ -8,6 +8,12 @@ import os
 
 
 class DataUtils:
+
+    CONTENT_LINE_IDX = 0
+    CONTENT_LINE_EMBEDDING_IDX = 1
+
+    def get_default():
+        return DataUtils(loaders=[MarkdownDataLoader()], transformer=BertTransformer())
 
     def __init__(self,
                  loaders: list[DataLoader] = [],
@@ -34,6 +40,7 @@ class DataUtils:
     def update(self, document_folder_dir: str = './Documents'):
         # Update self.utils and save the json file,
         #   call after a call to self.load()
+        self.document_folder_dir = document_folder_dir
 
         def update_file(file_dir, loader: DataLoader):
             # updata utils for a file, return a structure
@@ -76,10 +83,22 @@ class DataUtils:
             self.utils = default
         with open(dir, 'w') as utils_file:
             utils_file.write(json.dumps(self.utils, indent=4))
-    
+
+    def find_relevant(self, query: str):
+        query_is_null_or_whitespace = query is None or (isinstance(query, str) and query.strip() == '')
+        if query_is_null_or_whitespace:
+            raise ValueError("query is either null or whitespace. Please give a valid query.")
+
+        relevant_doc_names = self.transformer.find_relevant(query, self.utils)
+        relevant_doc_data = []
+        for doc in relevant_doc_names:
+            with open(doc, 'r') as doc_data:
+                file_content = doc_data.read()
+                relevant_doc_data.append(file_content)
+        return relevant_doc_data
+   
 if __name__ == "__main__":
-    utils = DataUtils(loaders=[MarkdownDataLoader()], transformer=BertTransformer())
+    utils = DataUtils.get_default()
     utils.load('./Documents/utils.json', dict())
     utils.update('./Documents')
     utils.save('./Documents/utils.json')
-
