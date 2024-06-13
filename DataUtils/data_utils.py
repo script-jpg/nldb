@@ -9,9 +9,6 @@ import os
 
 class DataUtils:
 
-    CONTENT_LINE_IDX = 0
-    CONTENT_LINE_EMBEDDING_IDX = 1
-
     def get_default():
         return DataUtils(loaders=[MarkdownDataLoader()], transformer=BertTransformer())
 

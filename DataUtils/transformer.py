@@ -1,6 +1,7 @@
 from transformers import BertTokenizer, BertModel
 import torch
 from abc import ABC, abstractmethod
+from .constants import CONTENT_LINE_EMBEDDING_IDX
 
 
 class Transformer(ABC):
@@ -70,12 +71,10 @@ class BertTransformer:
     def find_relevant(self, query: str, utils: dict):
         query_vector = self.encoded(query)
 
-        embedding_index = 1
-
         relevance = []
         for doc, util in utils.items():
             for line_data in util['content']:
-                line_embedding = line_data[embedding_index]
+                line_embedding = line_data[CONTENT_LINE_EMBEDDING_IDX]
                 relevance.append({
                     'doc': doc,
                     'cos_similarity': self.cos(query_vector, torch.Tensor(line_embedding)).item()
