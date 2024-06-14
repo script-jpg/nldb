@@ -23,7 +23,7 @@ class Transformer(ABC):
 
 
     @abstractmethod
-    def encoded(self, msg: str) -> list:
+    def encoded(self, msg: str|list) -> list:
         # Encode msg with the model
         pass
     
@@ -52,20 +52,35 @@ class BertTransformer:
         self.model = BertModel.from_pretrained(model_type)
         self.tokenizer = BertTokenizer.from_pretrained(model_type)
 
-    def encoded(self, msg: str):
-        # Encode msg into vector embedding
-        inputs = self.tokenizer(msg, return_tensors='pt')
-        # Forward pass, get hidden states
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-        
-        # Get the embeddings of the last hidden state
-        last_hidden_states = outputs.last_hidden_state
+    def encoded(self, msg):
+        if isinstance(msg, str):
+            # Handle a single string
+            inputs = self.tokenizer(msg, return_tensors='pt')
+            # Forward pass, get hidden states
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+            
+            # Get the embeddings of the last hidden state
+            last_hidden_states = outputs.last_hidden_state
 
-        # Typically, we use the embedding of the [CLS] token
-        sentence_embedding = last_hidden_states[:, 0, :].squeeze()
+            # Typically, we use the embedding of the [CLS] token
+            sentence_embedding = last_hidden_states[:, 0, :].squeeze()
 
-        return sentence_embedding
+            return sentence_embedding
+        elif isinstance(msg, list):
+            # Handle a list of strings
+            inputs = self.tokenizer(msg, return_tensors='pt', padding=True, truncation=True)
+            # Forward pass, get hidden states
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+            
+            # Get the embeddings of the last hidden state
+            last_hidden_states = outputs.last_hidden_state
+
+            # Typically, we use the embedding of the [CLS] token
+            sentence_embeddings = last_hidden_states[:, 0, :]
+
+            return sentence_embeddings
 
     def cos_similarity(self, msg1, msg2):
         return self.cos(self.encoded(msg1), self.encoded(msg2))
