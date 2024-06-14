@@ -1,6 +1,8 @@
 from transformers import BertTokenizer, BertModel
 import torch
 from abc import ABC, abstractmethod
+from .constants import CONTENT_LINE_EMBEDDING_IDX
+from .find_relevant_strategy import FindTopK
 
 
 class Transformer(ABC):
@@ -29,11 +31,17 @@ class Transformer(ABC):
     def cos_similarity(self, msg1, msg2):
         pass
 
+    @abstractmethod
+    def find_relevant(self, query: str, utils: dict):
+        pass
+
 class BertTransformer:
 
     def __init__(self, model_type = 'bert-base-uncased') -> None:
         self.model_type = model_type
         self.load_model(model_type)
+        self.cos = torch.nn.CosineSimilarity(0)
+        self.strategy = FindTopK()
 
     def name(self) -> str:
         # Return the model name
@@ -60,8 +68,22 @@ class BertTransformer:
         return sentence_embedding
 
     def cos_similarity(self, msg1, msg2):
-        cos = torch.nn.CosineSimilarity(0)
-        return cos(self.encoded(msg1), self.encoded(msg2))
+        return self.cos(self.encoded(msg1), self.encoded(msg2))
+    
+    def find_relevant(self, query: str, utils: dict):
+        query_vector = self.encoded(query)
+
+        relevance = []
+        for doc, util in utils.items():
+            for line_data in util['content']:
+                line_embedding = line_data[CONTENT_LINE_EMBEDDING_IDX]
+                relevance.append({
+                    'doc': doc,
+                    'cos_similarity': self.cos(query_vector, torch.Tensor(line_embedding)).item()
+                })
+
+        
+        return self.strategy.execute(relevance)
 
 
 
