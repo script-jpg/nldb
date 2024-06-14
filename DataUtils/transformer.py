@@ -2,6 +2,7 @@ from transformers import BertTokenizer, BertModel
 import torch
 from abc import ABC, abstractmethod
 from .constants import CONTENT_LINE_EMBEDDING_IDX
+from .find_relevant_strategy import FindTopK
 
 
 class Transformer(ABC):
@@ -40,6 +41,7 @@ class BertTransformer:
         self.model_type = model_type
         self.load_model(model_type)
         self.cos = torch.nn.CosineSimilarity(0)
+        self.strategy = FindTopK()
 
     def name(self) -> str:
         # Return the model name
@@ -80,9 +82,8 @@ class BertTransformer:
                     'cos_similarity': self.cos(query_vector, torch.Tensor(line_embedding)).item()
                 })
 
-        relevance.sort(key = lambda item: item['cos_similarity'], reverse=True)
-
-        return list(set([item['doc'] for item in relevance]))
+        
+        return self.strategy.execute(relevance)
 
 
 
