@@ -68,6 +68,13 @@ class DataUtils:
                 for file in sorted_files[file_type]:
                     update_file(f'{document_folder_dir}/{file}', loader)
 
+        # find files in self.utils not in sorted files and delete them
+        files_in_dir = {f"{document_folder_dir}/{file}" for file_list in sorted_files.values() for file in file_list}
+        files_in_utils = self.utils.keys()
+
+        for file in files_in_utils - files_in_dir:
+            del self.utils[file]
+
     
 
     def save(self, dir: str = './Documents', default = dict()):
