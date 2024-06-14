@@ -37,7 +37,6 @@ class DataUtils:
     def update(self, document_folder_dir: str = './Documents'):
         # Update self.utils and save the json file,
         #   call after a call to self.load()
-        self.document_folder_dir = document_folder_dir
 
         def update_file(file_dir, loader: DataLoader):
             # updata utils for a file, return a structure
@@ -45,9 +44,15 @@ class DataUtils:
             mtime = os.path.getmtime(file_dir)
             if file_dir not in self.utils or\
                 mtime != self.utils[file_dir]['mtime']:
-                print(f'updating {file_dir} ...')
-                file_content = [[line, self.transformer.encoded(line).tolist()]
-                                for line in tqdm(loader.load_file(file_dir))]
+                #print(f'updating {file_dir} ...')
+                file_content = []
+                lines = list(tqdm(loader.load_file(file_dir)))
+
+                batch_size = 64  # Adjust based on your GPU/CPU memory capacity
+                for i in range(0, len(lines), batch_size):
+                    batch_lines = lines[i:i + batch_size]
+                    embeddings = self.transformer.encoded(batch_lines)
+                    file_content.extend([[line, embedding.tolist()] for line, embedding in zip(batch_lines, embeddings)])
                 self.utils[file_dir] = {'mtime': mtime, 'content': file_content}
 
 
@@ -99,3 +104,4 @@ if __name__ == "__main__":
     utils.load('./Documents/utils.json', dict())
     utils.update('./Documents')
     utils.save('./Documents/utils.json')
+
